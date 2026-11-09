@@ -186,7 +186,7 @@
  <div class="field"><label for="tips-select">Selecciona un tip <span id="tips-count" class="optional-tag"></span></label><select id="tips-select"></select></div>
  <div class="library-actions"><button id="tips-edit" class="btn btn-outline" type="button" disabled>Modificar</button><button id="tips-delete" class="btn btn-ghost" type="button" disabled>Eliminar</button></div>
  <div class="field"><label for="tips-draft">Texto de la respuesta</label><textarea id="tips-draft" readonly placeholder="Selecciona un tip para preparar tu respuesta."></textarea></div>
- <p class="tips-hint">Haz doble clic para editar. Al copiar, se limpia el formulario.</p>
+ <p class="tips-hint">Haz doble clic para editar. Haz clic en un espacio vacío del formulario para bloquear el texto. Al copiar, se limpia el formulario.</p>
  <div class="library-actions"><button id="tips-copy" class="btn btn-primary" type="button">▢ Copiar texto</button><button id="tips-clear" class="btn btn-ghost" type="button">Limpiar</button></div>
 </div>
 </section>
@@ -1393,7 +1393,7 @@
     $('tips-count').textContent=items.length+' respuestas';
     $('tips-edit').disabled=!select.value;$('tips-delete').disabled=!select.value;
   }
-  function resetTips(){$('tips-search').value='';$('tips-select').value='';$('tips-draft').value='';editingTipId=null;renderTips();}
+  function resetTips(){$('tips-search').value='';$('tips-select').value='';$('tips-draft').value='';$('tips-draft').readOnly=true;editingTipId=null;renderTips();}
   function openTipForm(item){
     editingTipId=item?.id||null;
     $('tips-dialog-title').textContent=item?'Modificar tip':'Nuevo tip';
@@ -1421,15 +1421,19 @@
     catch(error){toast('No se pudo eliminar el tip.',true);}
   }
   function bindTips(){
+    const draft=$('tips-draft');
     $('tips-brand').addEventListener('change',resetTips);
     $('tips-search').addEventListener('input',renderTips);
-    $('tips-select').addEventListener('change',()=>{$('tips-draft').value=currentTip()?.text||'';renderTips();});
-    $('tips-draft').addEventListener('dblclick',()=>{$('tips-draft').readOnly=false;$('tips-draft').focus();});
-    $('tips-copy').addEventListener('click',()=>copyTextThenClear($('tips-copy'),$('tips-draft'),
+    $('tips-select').addEventListener('change',()=>{draft.value=currentTip()?.text||'';draft.readOnly=true;renderTips();});
+    draft.addEventListener('dblclick',()=>{draft.readOnly=false;draft.focus();});
+    draft.closest('.tips-panel').addEventListener('click',event=>{
+      if(event.target.closest('button,input,select,textarea,label,a'))return;
+      draft.readOnly=true;
+    });
+    $('tips-copy').addEventListener('click',()=>copyTextThenClear($('tips-copy'),draft,
       ()=>JSON.stringify(['tips-brand','tips-search','tips-select','tips-draft'].map(id=>$(id).value)),
       ()=>{
         $('tips-brand').value=activeStores()[0]?.id||'';
-        $('tips-draft').readOnly=true;
         resetTips();
       }));
     $('tips-clear').addEventListener('click',resetTips);
