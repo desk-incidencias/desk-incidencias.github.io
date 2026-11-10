@@ -152,7 +152,7 @@
       <label><input type="checkbox" data-management-copy="products" checked> Texto de productos</label>
       <button id="management-copy" class="btn btn-primary" type="button">Copiar texto</button>
       <small>Cada dato marcado se pega en una columna. Haz un clic en la celda de destino y pega con Ctrl + V.</small>
-      <small>Al copiar correctamente, se limpian la respuesta, el estado, los productos y las selecciones de esta hoja.</small>
+      <small>Los datos permanecen en el formulario después de copiar.</small>
     </aside>
     <article class="card-panel library-panel">
       <h2>Catálogo de repuestos</h2>
@@ -186,11 +186,11 @@
  <div class="field"><label for="tips-select">Selecciona un tip <span id="tips-count" class="optional-tag"></span></label><select id="tips-select"></select></div>
  <div class="library-actions"><button id="tips-edit" class="btn btn-outline" type="button" disabled>Modificar</button><button id="tips-delete" class="btn btn-ghost" type="button" disabled>Eliminar</button></div>
  <div class="field"><label for="tips-draft">Texto de la respuesta</label><textarea id="tips-draft" readonly placeholder="Selecciona un tip para preparar tu respuesta."></textarea></div>
- <p class="tips-hint">Haz doble clic para editar. Haz clic en un espacio vacío del formulario para bloquear el texto. Al copiar, se limpia el formulario.</p>
+ <p class="tips-hint">Haz doble clic para editar. Haz clic en un espacio vacío del formulario para bloquear el texto.</p>
  <div class="library-actions"><button id="tips-copy" class="btn btn-primary" type="button">▢ Copiar texto</button><button id="tips-clear" class="btn btn-ghost" type="button">Limpiar</button></div>
 </div>
 </section>
-<dialog id="tips-dialog" class="modal" aria-labelledby="tips-dialog-title"><form id="tips-form" class="modal-content tips-panel"><div class="modal-head"><h2 id="tips-dialog-title">Nuevo tip</h2><button id="tips-close" type="button" class="icon-dismiss" aria-label="Cerrar tip">✕</button></div><div class="field"><label for="tips-form-brand">Tienda</label><select id="tips-form-brand"><option>Oasis</option><option>BioPets</option></select></div><div class="field"><label for="tips-name">Título</label><input id="tips-name" required maxlength="160"></div><div class="field"><label for="tips-text">Respuesta</label><textarea id="tips-text" required maxlength="12000"></textarea></div><p id="tips-error" role="status"></p><button id="tips-save" class="btn btn-primary" type="submit">Guardar tip</button></form></dialog>
+<dialog id="tips-dialog" class="modal" aria-labelledby="tips-dialog-title"><form id="tips-form" class="modal-content tips-panel"><div class="modal-head"><h2 id="tips-dialog-title">Nuevo tip</h2><button id="tips-close" type="button" class="icon-dismiss" aria-label="Cerrar tip">✕</button></div><div class="field"><label for="tips-form-brand">Tienda</label><select id="tips-form-brand"><option>Oasis</option><option>BioPets</option></select></div><div class="field"><label for="tips-name">Título</label><input id="tips-name" required maxlength="160"></div><div class="field"><label for="tips-text">Respuesta</label><textarea id="tips-text" required maxlength="12000"></textarea><small>Haz doble clic para editar. Haz clic en un espacio vacío del formulario para bloquear el texto.</small></div><p id="tips-error" role="status"></p><button id="tips-save" class="btn btn-primary" type="submit">Guardar tip</button></form></dialog>
 <section class="view" id="view-resumen" aria-labelledby="summary-title" hidden>
   <div class="section-intro"><div><span class="eyebrow"><span class="eyebrow-dot"></span> ESTADÍSTICAS</span><h1 id="summary-title">Resumen de <span class="accent-text">movimientos</span></h1><p>Compara las cancelaciones y reembolsos de tus tiendas.</p></div></div>
   <div class="summary-dashboard">
@@ -346,7 +346,7 @@
   <div class="modal-head"><h2 id="library-title"></h2><button id="library-close" class="icon-dismiss" type="button" aria-label="Cerrar">✕</button></div>
   <label for="library-name">Nombre</label><input id="library-name" required maxlength="160">
   <div id="library-brand-field" class="field"><label for="library-brand">Tienda</label><select id="library-brand"><option>Oasis</option><option>BioPets</option></select></div>
-  <div id="library-text-field" class="field"><label for="library-text">Texto de la respuesta</label><textarea id="library-text" maxlength="5000"></textarea></div>
+  <div id="library-text-field" class="field"><label for="library-text">Texto de la respuesta</label><textarea id="library-text" maxlength="5000"></textarea><small>Haz doble clic para editar. Haz clic en un espacio vacío del formulario para bloquear el texto.</small></div>
   <p id="library-error" role="status"></p><button id="library-save" class="btn btn-primary" type="submit">Guardar</button>
 </form></dialog>
 <dialog id="country-dialog" class="modal" aria-labelledby="country-title">
@@ -990,9 +990,11 @@
       toast(wasEdit?'Cambios guardados en la nube':'Movimiento guardado en la nube');
     }catch(e){setStorageLabel('Error al guardar');toast('No se guardó en la nube: '+e.message,true);return;}
     finally{$('tx-save').disabled=false;}
-    const keepBrand=record.brand,keepType=record.type;
-    resetForm();$('tx-brand').value=keepBrand;$('tx-date').value=today();chooseTxType(keepType);
-    renderMoney();if(!cloudConfigured)toast(wasEdit?'Movimiento actualizado':'Movimiento guardado');$('tx-name').focus({preventScroll:true});
+    state.editingId=record.id;
+    $('form-title').textContent='Editar movimiento';
+    $('tx-save').textContent='✓ Guardar cambios';
+    $('tx-cancel-edit').hidden=false;
+    renderMoney();
   }
   function editTransaction(id){
     const r=records.find(x=>x.id===id);if(!r)return;state.editingId=r.id;
@@ -1089,6 +1091,7 @@
     brand.innerHTML=(isProduct?'':'<option value="">Todas las tiendas</option>')+storeOptions(ids,selectedStore);
     brand.value=ids.includes(selectedStore)?selectedStore:(isProduct?ids[0]||'':'');
     $('library-text').value=item?.text??'';
+    $('library-text').readOnly=false;
     $('library-brand-field').hidden=false;
     $('library-text-field').hidden=isProduct;
     $('library-text').required=!isProduct;
@@ -1271,38 +1274,17 @@
     for(const id of ['summary-period','summary-date','summary-measure','summary-store'])$(id).addEventListener('change',renderSummary);
   }
 
-  async function copyTextThenClear(button,field,snapshot,clear){
+  async function copyFieldText(button,field){
     const value=field.value;
     if(!value.trim()){toast('Escribe o selecciona un texto primero.',true);return;}
-    const before=snapshot();
     button.disabled=true;
-    try{
-      if(await copy(value)&&before===snapshot())clear();
-    }finally{button.disabled=false;}
+    try{await copy(value);}
+    finally{button.disabled=false;}
   }
   function lockManagementDraftsOnEmptyClick(event){
     if(event.target.closest('textarea,input,select,button,label,a,[role="button"],[contenteditable="true"]'))return;
     $('answer-draft').readOnly=true;
     $('product-draft').readOnly=true;
-  }
-  function managementLibraryFilterValues(){
-    return ['library-search-templates','library-search-products','library-store-products'].map(id=>$(id).value);
-  }
-  function managementCopySnapshot(){
-    return JSON.stringify({answer:$('answer-draft').value,status:$('management-status').value,products:$('product-draft').value,template:$('library-templates').value,product:$('library-products').value,quantity:$('library-quantity').value,cart:state.partCart,filters:managementLibraryFilterValues(),columns:[...document.querySelectorAll('[data-management-copy]')].map(box=>box.checked)});
-  }
-  function clearManagementForm(){
-    for(const id of ['answer-draft','product-draft']){$(id).value='';$(id).readOnly=true;}
-    $('management-status').value='';
-    $('library-search-templates').value='';
-    $('library-search-products').value='';
-    $('library-store-products').value='';
-    $('library-templates').value='';$('library-products').value='';$('library-quantity').value=1;
-    state.partCart=[];state.selected.plantillas=null;state.selected.repuestos=null;state.tplNotePrefix='';
-    // Clear the old hidden composer too, so a later selection cannot restore its draft.
-    $('compose-text').value='';$('compose-text').readOnly=true;
-    for(const box of document.querySelectorAll('[data-management-copy]'))box.checked=true;
-    renderLibraries();
   }
   async function copyManagementForm(){
     const fields={answer:$('answer-draft').value,status:$('management-status').value,products:$('product-draft').value};
@@ -1310,13 +1292,9 @@
     if(!selected.length){toast('Marca al menos un dato para copiar.',true);return;}
     const values=selected.map(key=>fields[key]);
     if(!values.some(value=>value.trim())){toast('Selecciona una respuesta, un estado o añade productos.',true);return;}
-    const snapshot=managementCopySnapshot();
     $('management-copy').disabled=true;
     try{
-      const copied=await copyCells(values);
-      if(copied&&snapshot===managementCopySnapshot()){
-        clearManagementForm();toast('Fila copiada y formulario limpio. Pega en tu hoja con Ctrl + V.');
-      }
+      await copyCells(values);
     }finally{$('management-copy').disabled=false;}
   }
 
@@ -1406,6 +1384,7 @@
     editingTipId=item?.id||null;
     $('tips-dialog-title').textContent=item?'Modificar tip':'Nuevo tip';
     $('tips-name').value=item?.title||'';$('tips-text').value=item?.text||'';
+    $('tips-text').readOnly=false;
     $('tips-form-brand').value=item?.brand||$('tips-brand').value;
     $('tips-error').textContent='';$('tips-dialog').showModal();$('tips-name').focus();
   }
@@ -1438,12 +1417,7 @@
       if(event.target.closest('button,input,select,textarea,label,a'))return;
       draft.readOnly=true;
     });
-    $('tips-copy').addEventListener('click',()=>copyTextThenClear($('tips-copy'),draft,
-      ()=>JSON.stringify(['tips-brand','tips-search','tips-select','tips-draft'].map(id=>$(id).value)),
-      ()=>{
-        $('tips-brand').value=activeStores()[0]?.id||'';
-        resetTips();
-      }));
+    $('tips-copy').addEventListener('click',()=>copyFieldText($('tips-copy'),draft));
     $('tips-clear').addEventListener('click',resetTips);
     $('tips-new').addEventListener('click',()=>openTipForm());
     $('tips-edit').addEventListener('click',()=>{const item=currentTip();if(item)openTipForm(item);});
@@ -1504,17 +1478,13 @@
     }catch(error){$('reason-error').textContent='No se pudo eliminar. Inténtalo de nuevo.';}
     finally{$('reason-save').disabled=false;renderIncidentTypes();}
   }
-  function lockRefundTextOnEmptyClick(event){
-    if(state.txType!=='Reembolso'||event.target.closest('input,textarea,select,button,label,a,dialog,[role="button"],[contenteditable="true"]'))return;
-    $('tx-final-text').readOnly=true;
-  }
   function bindIncidentTypes(){
     $('reason-manage').addEventListener('click',()=>{renderIncidentTypes();$('reason-dialog').showModal();newIncidentType();});
     $('reason-close').addEventListener('click',()=>$('reason-dialog').close());
     $('reason-new').addEventListener('click',newIncidentType);
     $('reason-list').addEventListener('change',()=>{const item=incidentTypes().find(item=>item.id===$('reason-list').value);editingReasonId=item?.id||null;$('reason-name').value=item?.name||'';$('reason-save').textContent=item?'Guardar nombre':'Agregar tipo';$('reason-delete').disabled=!item;$('reason-error').textContent='';});
     $('reason-form').addEventListener('submit',saveIncidentType);$('reason-delete').addEventListener('click',deleteIncidentType);
-    $('tx-form').addEventListener('click',lockRefundTextOnEmptyClick);
+    $('tx-final-text').addEventListener('blur',()=>{$('tx-final-text').readOnly=true;});
     renderIncidentTypes();
   }
 
@@ -1622,12 +1592,24 @@
     updateStoreSelectors();renderStores();
   }
 
+  function bindModalResponses(){
+    for(const [fieldId,formId] of [['library-text','library-form'],['tips-text','tips-form']]){
+      const field=$(fieldId);
+      field.addEventListener('dblclick',()=>{field.readOnly=false;field.focus();});
+      $(formId).addEventListener('click',event=>{
+        if(event.target.closest('input,textarea,select,button,label,a,[role="button"],[contenteditable="true"]'))return;
+        field.readOnly=true;
+      });
+    }
+  }
+
   function bindEvents(){
     bindSummary();
     bindStores();
     bindCurrency();bindIncidentTypes();
     bindTips();
     bindLibraries();
+    bindModalResponses();
     $('new-product').addEventListener('click',()=>{$('product-form').reset();$('product-brand').value=state.partsFilter||activeStores()[0]?.id||'';$('product-error').textContent='';$('product-dialog').showModal();$('product-name').focus();});
     $('product-close').addEventListener('click',()=>$('product-dialog').close());
     $('product-form').addEventListener('submit',saveProduct);
@@ -1644,9 +1626,7 @@ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()
     $('tpl-note').addEventListener('change',()=>{if(state.selected.plantillas)applyTemplateNote();});
     $('compose-text').addEventListener('dblclick',()=>{if(state.page==='plantillas'&&state.selected.plantillas){$('compose-text').readOnly=false;$('compose-text').setAttribute('aria-readonly','false');$('template-edit-hint').textContent='Ya puedes editar esta respuesta. Los cambios no modifican la plantilla original.';toast('Texto habilitado para editar');}});
     $('copy-active').addEventListener('click',()=>copyItem(state.kind,selectedItem(state.kind)?.id));
-    $('copy-part-text').addEventListener('click',()=>copyTextThenClear($('copy-part-text'),$('compose-text'),
-      ()=>JSON.stringify([state.partCart,$('compose-text').value,$('parts-search').value,$('parts-filter').value]),
-      clearCopyArea));
+    $('copy-part-text').addEventListener('click',()=>copyFieldText($('copy-part-text'),$('compose-text')));
     $('compose-text').addEventListener('input',()=>{
       if(state.page==='repuestos'){$('copy-part-text').disabled=!$('compose-text').value.trim();return;}
       if(state.page!=='plantillas'||$('compose-text').readOnly||!state.selected.plantillas)return;
