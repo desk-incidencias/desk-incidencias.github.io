@@ -231,6 +231,7 @@
                 <div class="percent-options" role="group" aria-label="Porcentaje a reembolsar"><button type="button" data-percent="40" class="percent-pill">40%</button><button type="button" data-percent="60" class="percent-pill">60%</button><button type="button" data-percent="80" class="percent-pill">80%</button><button type="button" data-percent="100" class="percent-pill selected">100%</button></div>
                 <button id="tx-fee-only" type="button" class="fee-only-button" aria-pressed="false">−20 € · Solo descuento por manipulación</button>
               </div>
+              <div id="tx-local-refund" class="calculation-preview" hidden><span>Reembolso en moneda original</span><strong id="tx-local-refund-amount" aria-live="polite">—</strong><small id="tx-local-refund-note" hidden></small></div>
               <div class="two-fields refund-exclusive" hidden><div class="field"><label for="tx-status">Estado</label><select id="tx-status"><option value="Resuelto">Resuelto</option><option value="Pendiente">Pendiente</option><option value="En espera">En espera</option></select></div><div class="field"><label for="tx-notes">Tipo de incidencia</label>
                   <select id="tx-notes" aria-label="Tipo de incidencia del reembolso">
                     <option value="">Sin nota · Selecciona un motivo</option>
@@ -248,7 +249,7 @@
                   </select>
                   <button id="reason-manage" type="button" class="btn btn-outline btn-tiny">Administrar tipos</button>
                 </div></div>
-              <div class="field refund-exclusive" hidden><label for="tx-final-text">Texto final generado</label><textarea id="tx-final-text" maxlength="5000" readonly rows="4"></textarea><div class="library-actions"><button class="btn btn-outline" type="button" data-draft-copy="tx-final-text">Copiar texto</button></div><small>Haz doble clic para editar. Al copiar, se limpia el formulario. Un clic en un espacio vacío de Reembolsos limpia este texto.</small></div>
+              <div class="field refund-exclusive" hidden><label for="tx-final-text">Texto final generado</label><textarea id="tx-final-text" maxlength="5000" readonly rows="4"></textarea><small>Haz doble clic para editar. Haz clic en un espacio vacío del formulario para bloquear el texto.</small></div>
               <div class="field solution-field refund-exclusive" hidden><label for="tx-solution">Solución <span class="optional-tag">Automática y editable</span></label><textarea id="tx-solution" rows="2" placeholder="Selecciona un reembolso o escribe una solución..."></textarea><small>Se completa según el porcentaje o el descuento. Puedes personalizarla.</small></div>
               <label id="tx-manual-toggle" class="manual-amount-toggle" hidden><input type="checkbox" id="tx-manual-mode"> Introducir el importe definitivo en euros manualmente</label>
               <div id="tx-manual-entry" class="field" hidden><label for="tx-final-eur">Importe definitivo en €</label><input id="tx-final-eur" type="text" inputmode="decimal" maxlength="40" placeholder="Importe que se registrará en euros"></div>
@@ -588,9 +589,27 @@
       fx={...fx,rate:null,loading:false,error:'No se pudo consultar el cambio. Reintenta o introduce el importe definitivo en euros manualmente.'};
     }finally{clearTimeout(timeout);if(version===fxRequest){fxController=null;renderAmountPreview();}}
   }
+  function renderLocalRefund(money,currency){
+    const visible=state.txType==='Reembolso'&&currency!=='EUR';
+    $('tx-local-refund').hidden=!visible;
+    if(!visible)return;
+    const requiresRate=money.manual||state.refundMode==='fee20';
+    const rate=fx.currency===currency&&fx.rate>0?fx.rate:null;
+    const cents=requiresRate
+      ? (!money.invalid&&money.total!==null&&rate!==null?money.total/rate:null)
+      : calculate(money.original.cents,state.txType,state.percent,false);
+    $('tx-local-refund-amount').textContent=cents===null?'—':new Intl.NumberFormat('es',{
+      style:'currency',currency,currencyDisplay:'code',minimumFractionDigits:0
+    }).format(cents/100);
+    const note=$('tx-local-refund-note');
+    note.textContent=cents!==null&&requiresRate?'Importe aproximado según el tipo de cambio.':
+      requiresRate&&rate===null&&(money.original.cents!==null||money.total!==null)?'Se necesita el tipo de cambio para calcularlo.':'';
+    note.hidden=!note.textContent;
+  }
   function renderAmountPreview(){
     const money=currencyAmounts(),country=currentCountry();
     showCurrencyFields();
+    renderLocalRefund(money,country.currency);
     $('tx-approx-eur').value=money.baseCents===null?'':amountPlain(money.baseCents);
     $('tx-rate-info').textContent=fx.loading?'Consultando el tipo de cambio…':fx.error||(fx.date?`1 ${country.currency} = ${fx.rate} € · Cambio del ${dateForExcel(fx.date)} · Frankfurter`:'');
     $('tx-rate-refresh').disabled=fx.loading;
@@ -1261,10 +1280,6 @@
       if(await copy(value)&&before===snapshot())clear();
     }finally{button.disabled=false;}
   }
-  function transactionCopySnapshot(){
-    const fields=Array.from($('tx-form').elements,field=>[field.value,field.checked]);
-    return JSON.stringify([state.editingId,state.txType,state.percent,state.refundMode,fields]);
-  }
   function lockManagementDraftsOnEmptyClick(event){
     if(event.target.closest('textarea,input,select,button,label,a,[role="button"],[contenteditable="true"]'))return;
     $('answer-draft').readOnly=true;
@@ -1346,13 +1361,6 @@
     for(const id of ['answer-draft','product-draft','tx-final-text']){
       const field=$(id);
       field.addEventListener('dblclick',()=>{field.readOnly=false;field.focus();});
-    }
-    for(const button of document.querySelectorAll('[data-draft-copy]')){
-      button.addEventListener('click',()=>copyTextThenClear(button,$(button.dataset.draftCopy),transactionCopySnapshot,()=>{
-        const type=state.txType;
-        clearTransactionForm();
-        chooseTxType(type);
-      }));
     }
     for(const button of document.querySelectorAll('[data-draft-clear]')){
       button.addEventListener('click',()=>{
@@ -1496,9 +1504,9 @@
     }catch(error){$('reason-error').textContent='No se pudo eliminar. Inténtalo de nuevo.';}
     finally{$('reason-save').disabled=false;renderIncidentTypes();}
   }
-  function clearRefundTextOnEmptyClick(event){
+  function lockRefundTextOnEmptyClick(event){
     if(state.txType!=='Reembolso'||event.target.closest('input,textarea,select,button,label,a,dialog,[role="button"],[contenteditable="true"]'))return;
-    $('tx-final-text').value='';$('tx-final-text').dataset.motive='';$('tx-final-text').readOnly=true;
+    $('tx-final-text').readOnly=true;
   }
   function bindIncidentTypes(){
     $('reason-manage').addEventListener('click',()=>{renderIncidentTypes();$('reason-dialog').showModal();newIncidentType();});
@@ -1506,7 +1514,7 @@
     $('reason-new').addEventListener('click',newIncidentType);
     $('reason-list').addEventListener('change',()=>{const item=incidentTypes().find(item=>item.id===$('reason-list').value);editingReasonId=item?.id||null;$('reason-name').value=item?.name||'';$('reason-save').textContent=item?'Guardar nombre':'Agregar tipo';$('reason-delete').disabled=!item;$('reason-error').textContent='';});
     $('reason-form').addEventListener('submit',saveIncidentType);$('reason-delete').addEventListener('click',deleteIncidentType);
-    $('view-movimientos').addEventListener('click',clearRefundTextOnEmptyClick);
+    $('tx-form').addEventListener('click',lockRefundTextOnEmptyClick);
     renderIncidentTypes();
   }
 
