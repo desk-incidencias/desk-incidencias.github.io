@@ -219,10 +219,12 @@
           <aside class="editor-card" id="transaction-editor">
             <div class="form-head"><div class="round-icon mint-icon">＋</div><div><span class="eyebrow dark-eyebrow">REGISTRO RÁPIDO</span><h2 id="form-title">Nuevo movimiento</h2><p>Todos los campos son opcionales.</p></div></div>
             <form id="tx-form" novalidate>
+              <button id="tx-reset-top" type="button" class="btn btn-ghost full-width">Limpiar formulario</button>
               <label class="label">Tipo de operación</label>
               <div class="pill-toggle" role="group" aria-label="Tipo de operación"><button type="button" class="pill-option active" data-tx-type="Cancelación" aria-pressed="true">Cancelación</button><button type="button" class="pill-option" data-tx-type="Reembolso" aria-pressed="false">Reembolso</button></div>
               <div class="two-fields"><div class="field"><label for="tx-brand">Tienda</label><select id="tx-brand"><option value="Oasis">Oasis</option><option value="BioPets">BioPets</option><option value="">Sin especificar</option></select></div><div class="field"><label for="tx-name">Nombre</label><input id="tx-name" type="text" placeholder="Nombre del cliente (opcional)" maxlength="160" autocomplete="off"></div></div>
-              <div class="two-fields"><div class="field"><label for="tx-date">Fecha</label><input id="tx-date" type="date" readonly></div><div class="field"><label for="tx-tracking">N.º de seguimiento</label><input id="tx-tracking" type="text" placeholder="Seguimiento (opcional)" maxlength="200" autocomplete="off"></div></div>
+              <div class="two-fields"><div class="field"><label for="tx-date">Fecha</label><input id="tx-date" type="date" readonly></div><div class="field"><label for="tx-order-date">Fecha del pedido</label><input id="tx-order-date" type="date"></div></div>
+              <div class="field"><label for="tx-tracking">N.º de seguimiento</label><input id="tx-tracking" type="text" placeholder="Seguimiento (opcional)" maxlength="200" autocomplete="off"></div>
               <div class="field currency-country"><div class="country-label"><label for="tx-country">País</label><button id="country-add" class="btn btn-outline btn-tiny" type="button">＋ Nuevo país</button></div><select id="tx-country"><option value="CO">Colombia</option><option value="CL">Chile</option><option value="US">Estados Unidos</option><option value="MX">México</option><option value="ES" selected>España</option></select><div class="library-actions country-actions"><button id="country-edit" class="btn btn-outline btn-tiny" type="button">Modificar país</button><button id="country-delete" class="btn btn-ghost btn-tiny" type="button">Eliminar país</button></div></div>
               <div class="two-fields"><div class="field"><label id="tx-base-label" for="tx-base">Importe original (€)</label><input id="tx-base" type="text" inputmode="decimal" placeholder="Ej. 59,90" maxlength="40"></div></div>
               <div id="tx-conversion" class="conversion-box" hidden><div class="field"><label for="tx-approx-eur">Importe aproximado en €</label><input id="tx-approx-eur" type="text" readonly placeholder="Pendiente de conversión"></div><p id="tx-rate-info" role="status"></p><button id="tx-rate-refresh" type="button" class="btn btn-outline btn-tiny">Actualizar cambio</button></div>
@@ -256,8 +258,11 @@
               <div class="calculation-preview"><span>Importe a contabilizar</span><strong id="tx-preview">—</strong><small id="tx-equation">Escribe un importe para calcularlo.</small></div>
               <div class="tx-copy-panel tx-copy-top refund-exclusive" hidden>
                 <strong>Copiar datos para tu otro Excel</strong>
-                <p>Nombre, fecha y seguimiento se copian primero. Marca las columnas adicionales que necesites.</p>
+                <p>Marca las columnas que quieras copiar, en el orden mostrado.</p>
                 <div class="tx-copy-checks" aria-label="Columnas a copiar">
+                  <label><input type="checkbox" data-tx-copy-field="customerName" checked> Nombre del cliente</label>
+                  <label><input type="checkbox" data-tx-copy-field="orderDate" checked> Fecha del pedido</label>
+                  <label><input type="checkbox" data-tx-copy-field="trackingNumber" checked> N.º de seguimiento</label>
                   <label><input type="checkbox" data-tx-copy-field="finalText" checked> Texto final generado</label>
                   <label><input type="checkbox" data-tx-copy-field="status" checked> Estado</label>
                   <label><input type="checkbox" data-tx-copy-field="solution" checked> Solución</label>
@@ -679,7 +684,7 @@
     const clean = v => String(v??'').slice(0,1000);
     const oldSolution=clean(r.solution||'');
     const solution=/^Ha aceptado (40|60)%$/.test(oldSolution)?oldSolution+' al final':oldSolution;
-    return {...normalizeCurrencyRecord(r),id:clean(r.id)||uid(),date:dt,brand:validStoreId(r.brand)?r.brand:'',customerName:clean(r.customerName??r.name),trackingNumber:clean(r.trackingNumber??r.tracking),order:clean(r.order),finalText:String(r.finalText??r.notes??'').slice(0,5000),type,
+    return {...normalizeCurrencyRecord(r),id:clean(r.id)||uid(),date:dt,orderDate:isIsoDate(r.orderDate)?r.orderDate:'',brand:validStoreId(r.brand)?r.brand:'',customerName:clean(r.customerName??r.name),trackingNumber:clean(r.trackingNumber??r.tracking),order:clean(r.order),finalText:String(r.finalText??r.notes??'').slice(0,5000),type,
       baseCents:base===null?null:Math.max(0,Math.round(base)),amountCents:amount===null?null:Math.max(0,Math.round(amount)),percent,fee,
       status,notes:clean(r.notes),solution,refundMode:r.refundMode==='fee20'?'fee20':'percent',rawAmount:clean(r.rawAmount),source:clean(r.source||''),createdAt:clean(r.createdAt||'')};
   }
@@ -755,8 +760,8 @@
   function download(content,name,type='application/json;charset=utf-8'){const b=new Blob([content],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);}
   function exportBackup(){download(JSON.stringify({app:'gestiondesk-v2',version:2,exportedAt:new Date().toISOString(),records},null,2),`gestiondesk-respaldo-${today()}.json`);toast('Respaldo descargado');}
   function csvCell(v){let s=String(v ?? '');if(/^[=+@-]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"';}
-  function exportCsv(){const head=['Fecha','Nº de seguimiento','Tienda','Nombre','Tipo','Nº pedido','Importe original (€)','Porcentaje reembolso','Modalidad de reembolso','Descuento manipulación (€)','Importe final (€)','Estado','Tipo de incidencia','Solución','Importe original sin verificar'];
-    const lines=sorted(records).map(r=>[r.date,r.trackingNumber,r.brand?storeName(r.brand):'',r.customerName,r.type,r.order,amountPlain(r.baseCents),r.type==='Reembolso'&&r.refundMode!=='fee20'?String(r.percent)+'%':'',r.refundMode==='fee20'?'Descuento 20 €':'Porcentaje',r.type==='Reembolso'&&(r.fee||r.refundMode==='fee20')?'20,00':'0,00',amountPlain(r.amountCents),r.status,r.notes,r.solution||suggestedSolution(r.type,r.percent,r.refundMode,r.baseCents),r.rawAmount]);
+  function exportCsv(){const head=['Fecha','Nº de seguimiento','Tienda','Nombre','Tipo','Nº pedido','Importe original (€)','Porcentaje reembolso','Modalidad de reembolso','Descuento manipulación (€)','Importe final (€)','Estado','Tipo de incidencia','Solución','Importe original sin verificar','Fecha del pedido'];
+    const lines=sorted(records).map(r=>[r.date,r.trackingNumber,r.brand?storeName(r.brand):'',r.customerName,r.type,r.order,amountPlain(r.baseCents),r.type==='Reembolso'&&r.refundMode!=='fee20'?String(r.percent)+'%':'',r.refundMode==='fee20'?'Descuento 20 €':'Porcentaje',r.type==='Reembolso'&&(r.fee||r.refundMode==='fee20')?'20,00':'0,00',amountPlain(r.amountCents),r.status,r.notes,r.solution||suggestedSolution(r.type,r.percent,r.refundMode,r.baseCents),r.rawAmount,r.orderDate||'']);
     download('\ufeffsep=;\r\n'+[head,...lines].map(r=>r.map(csvCell).join(';')).join('\r\n'),`gestiondesk-movimientos-${today()}.csv`,'text/csv;charset=utf-8');toast('CSV descargado para Excel');}
   async function importBackup(file){if(!file)return;try{if(file.size>15*1024*1024)throw Error('Archivo demasiado grande');const j=JSON.parse(await file.text());if(!Array.isArray(j.records))throw Error('No contiene movimientos válidos');if(!confirm(`¿Importar ${j.records.length} movimientos? Se sustituirán tus registros actuales. Descarga antes una copia si necesitas conservarlos.`))return;
       const imported=j.app==='gestiondesk-v2'?j.records.map(normalizeRecord).filter(Boolean):mergeLegacy(j);
@@ -906,9 +911,9 @@
   function moneyTabChange(tab){state.moneyTab=tab;document.querySelectorAll('[data-money-tab]').forEach(b=>{const on=b.dataset.moneyTab===tab;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on));});renderMoney();}
   function recordTable(rows,emptyMsg='Todavía no hay registros en esta fecha.'){
     if(!rows.length)return `<div class="empty-state"><div class="empty-illustration">✎</div><strong>Sin movimientos</strong><p>${escape(emptyMsg)}</p></div>`;
-    return `<div class="table-scroll"><table class="data-table"><thead><tr><th>Fecha</th><th>N.º de seguimiento</th><th>Tienda</th><th>Nombre</th><th>Tipo</th><th>Importe final</th><th>Estado</th><th>Solución</th><th>Acciones</th></tr></thead><tbody>${sorted(rows).map(r=>{
+    return `<div class="table-scroll"><table class="data-table"><thead><tr><th>Fecha</th><th>Fecha del pedido</th><th>N.º de seguimiento</th><th>Tienda</th><th>Nombre</th><th>Tipo</th><th>Importe final</th><th>Estado</th><th>Solución</th><th>Acciones</th></tr></thead><tbody>${sorted(rows).map(r=>{
       const review=r.rawAmount && r.amountCents==null;const status=review?'<span class="status-pill review">Revisar importe</span>':r.status!=='Resuelto'?'<span class="status-pill pending">'+escape(r.status)+'</span>':'<span class="status-pill">✓ Resuelto</span>';
-      return `<tr><td><strong>${escape(displayDate(r.date))}</strong><div class="muted-value">${escape(r.order||'Sin n.º de pedido')}</div></td><td>${r.trackingNumber?escape(r.trackingNumber):'<span class="muted-value">—</span>'}</td><td>${r.brand?`<span class="brand-chip ${r.brand==='BioPets'?'biopets':''}">${escape(storeName(r.brand))}</span>`:'<span class="muted-value">—</span>'}</td><td title="${escape(r.customerName)}">${r.customerName?escape(r.customerName):'<span class="muted-value">—</span>'}</td><td><span class="type-chip ${r.type==='Reembolso'?'refund':'cancel'}">${escape(r.type)}</span>${r.type==='Reembolso'?`<div class="muted-value">${r.refundMode==='fee20'?'Descuento 20 €':r.percent+'%'+(r.fee?' − 20 €':'')}</div>`:''}</td><td><strong class="amount-strong">${amountLabel(r.amountCents)}</strong>${review?`<div class="muted-value">Original: ${escape(r.rawAmount)}</div>`:''}</td><td>${status}</td><td title="${escape(r.solution||suggestedSolution(r.type,r.percent,r.refundMode,r.baseCents))}" class="solution-cell">${escape(r.solution||suggestedSolution(r.type,r.percent,r.refundMode,r.baseCents))||'<span class="muted-value">—</span>'}</td><td><div class="table-actions"><button class="table-icon" type="button" data-copy-record="${escape(r.id)}" title="Copiar solo los campos marcados en el formulario">▢ Copiar datos</button><button class="table-icon" type="button" data-edit-record="${escape(r.id)}">Editar</button><button class="table-icon danger" type="button" data-delete-record="${escape(r.id)}" title="Eliminar">✕</button></div></td></tr>`;
+      return `<tr><td><strong>${escape(displayDate(r.date))}</strong><div class="muted-value">${escape(r.order||'Sin n.º de pedido')}</div></td><td>${r.orderDate?escape(displayDate(r.orderDate)):'<span class="muted-value">—</span>'}</td><td>${r.trackingNumber?escape(r.trackingNumber):'<span class="muted-value">—</span>'}</td><td>${r.brand?`<span class="brand-chip ${r.brand==='BioPets'?'biopets':''}">${escape(storeName(r.brand))}</span>`:'<span class="muted-value">—</span>'}</td><td title="${escape(r.customerName)}">${r.customerName?escape(r.customerName):'<span class="muted-value">—</span>'}</td><td><span class="type-chip ${r.type==='Reembolso'?'refund':'cancel'}">${escape(r.type)}</span>${r.type==='Reembolso'?`<div class="muted-value">${r.refundMode==='fee20'?'Descuento 20 €':r.percent+'%'+(r.fee?' − 20 €':'')}</div>`:''}</td><td><strong class="amount-strong">${amountLabel(r.amountCents)}</strong>${review?`<div class="muted-value">Original: ${escape(r.rawAmount)}</div>`:''}</td><td>${status}</td><td title="${escape(r.solution||suggestedSolution(r.type,r.percent,r.refundMode,r.baseCents))}" class="solution-cell">${escape(r.solution||suggestedSolution(r.type,r.percent,r.refundMode,r.baseCents))||'<span class="muted-value">—</span>'}</td><td><div class="table-actions"><button class="table-icon" type="button" data-copy-record="${escape(r.id)}" title="Copiar solo los campos marcados en el formulario">▢ Copiar datos</button><button class="table-icon" type="button" data-edit-record="${escape(r.id)}">Editar</button><button class="table-icon danger" type="button" data-delete-record="${escape(r.id)}" title="Eliminar">✕</button></div></td></tr>`;
     }).join('')}</tbody></table></div>`;
   }
   function dailyPane(){const totals=dailyTotals(state.cashDate);const todayRecords=activeRecords(state.cashDate);const review=records.filter(r=>r.rawAmount && r.amountCents==null).length;
@@ -917,16 +922,14 @@
       <div class="pane-block"><div class="pane-heading"><div><h2>Movimientos del ${escape(displayDate(state.cashDate))}</h2><p>Usa Editar si necesitas corregir un importe.</p></div><span class="mini-count">${todayRecords.length} registrados</span></div>${recordTable(todayRecords)}</div>`;
   }
   function allDaysPane(){const dates=[...new Set(records.map(r=>r.date).filter(isIsoDate))].sort((a,b)=>b.localeCompare(a));const without=records.filter(r=>!r.date).length;
-    return `<div class="history-top"><div><h2>Cierres por fecha y tienda</h2><small>Solo se suman movimientos resueltos con importe válido.</small></div></div><div class="explain-banner">Cada cifra tiene su propio botón de copiar. También puedes copiar los importes de un día en una sola fila.</div>
-      <div class="pane-block" style="margin-top:0"><div class="table-scroll"><table class="data-table daily-totals"><thead><tr><th>Fecha</th>${reportStoreIds().map(brand=>`<th>${escape(storeName(brand))} · Cancelaciones</th><th>${escape(storeName(brand))} · Reembolsos</th>`).join('')}<th>Acciones</th></tr></thead><tbody>${dates.map(d=>{const t=dailyTotals(d);const td=(brand,type)=>`<td><div class="table-cell-copy"><strong>${amountLabel(t[brand][type].cents)}</strong><button title="Copiar" type="button" class="total-inline-button" data-sum-copy="${brand}|${type}" data-sum-date="${d}">▢ Copiar</button></div></td>`;return `<tr><td><strong class="date-td">${escape(displayDate(d))}</strong></td>${Object.keys(t).map(brand=>td(brand,'Cancelación')+td(brand,'Reembolso')).join('')}<td><div class="table-actions"><button class="table-icon" type="button" data-copy-four="${d}">Copiar fila</button><button class="table-icon" type="button" data-view-date="${d}">Ver día</button></div></td></tr>`;}).join('')||'<tr><td colspan="${reportStoreIds().length*2+2}">No hay fechas registradas todavía.</td></tr>'}</tbody></table></div></div>
+    return `<div class="history-top"><div><h2>Cierres por fecha y tienda</h2><small>Solo se suman movimientos resueltos con importe válido.</small></div></div>
+      <div class="pane-block" style="margin-top:0"><div class="table-scroll"><table class="data-table daily-totals"><thead><tr><th>Fecha</th>${reportStoreIds().map(brand=>`<th>${escape(storeName(brand))} · Cancelaciones</th><th>${escape(storeName(brand))} · Reembolsos</th>`).join('')}<th>Acciones</th></tr></thead><tbody>${dates.map(d=>{const t=dailyTotals(d);const td=(brand,type)=>`<td><div class="table-cell-copy"><strong>${amountLabel(t[brand][type].cents)}</strong></div></td>`;return `<tr><td><strong class="date-td">${escape(displayDate(d))}</strong></td>${Object.keys(t).map(brand=>td(brand,'Cancelación')+td(brand,'Reembolso')).join('')}<td><div class="table-actions"><button class="table-icon" type="button" data-view-date="${d}">Ver día</button></div></td></tr>`;}).join('')||'<tr><td colspan="${reportStoreIds().length*2+2}">No hay fechas registradas todavía.</td></tr>'}</tbody></table></div></div>
       ${without?`<p class="hint-below">${without} movimiento${without!==1?'s':''} sin fecha no aparece${without!==1?'n':''} en los cierres diarios; puedes editarlo${without!==1?'s':''} desde el historial.</p>`:''}`;
   }
   function historyFiltered(){const q=norm(state.historySearch);return sorted(records).filter(r=>(!state.historyBrand||(state.historyBrand==='sin'?!r.brand:r.brand===state.historyBrand))&&(!state.historyType||r.type===state.historyType)&&(!state.historyDate||r.date===state.historyDate)&&norm([r.date,storeName(r.brand),r.type,r.order,r.customerName,r.trackingNumber,r.notes,r.finalText,r.solution,r.rawAmount].join(' ')).includes(q));}
   function historyPane(){return `<div class="history-top"><div><h2>Historial de movimientos</h2><small>Busca, filtra, corrige o elimina registros.</small></div></div><div class="history-toolbar"><input id="history-search" type="search" placeholder="Buscar nombre, seguimiento o texto..." aria-label="Buscar en historial" value="${escape(state.historySearch)}"><select id="history-brand" aria-label="Filtrar tienda"><option value="">Todas las tiendas</option>${storeOptions(reportStoreIds(),state.historyBrand)}<option value="sin" ${state.historyBrand==='sin'?'selected':''}>Sin tienda</option></select><select id="history-type" aria-label="Filtrar operación"><option value="">Ambos tipos</option><option value="Cancelación" ${state.historyType==='Cancelación'?'selected':''}>Cancelaciones</option><option value="Reembolso" ${state.historyType==='Reembolso'?'selected':''}>Reembolsos</option></select><input id="history-date" type="date" value="${escape(state.historyDate)}" aria-label="Filtrar fecha"></div><div id="history-table-content"></div>`;}
   function updateHistoryTable(){const box=$('history-table-content');if(!box)return;const list=historyFiltered();const rows=list.slice(0,state.historyLimit);box.innerHTML=`<div class="pane-block" style="margin-top:0"><div class="pane-heading"><div><h2>${list.length} movimientos encontrados</h2><p>Los cierres suman únicamente los importes resueltos.</p></div></div>${recordTable(rows,'No hay movimientos que coincidan con estos filtros.')}</div>${list.length>rows.length?'<div style="text-align:center;margin:18px"><button class="btn btn-outline" type="button" id="load-more-history">Mostrar más</button></div>':''}`;}
   function renderMoney(){$('cash-date').value=state.cashDate;const content=$('money-dynamic');content.innerHTML=state.moneyTab==='dia'?dailyPane():state.moneyTab==='dias'?allDaysPane():historyPane();if(state.moneyTab==='historial')updateHistoryTable();}
-  function copyMetric(brand,type,date){const t=dailyTotals(date);copy(amountPlain(t[brand][type].cents));}
-  function copyFour(date){const t=dailyTotals(date);const cols=Object.values(t).flatMap(store=>[store['Cancelación'].cents,store['Reembolso'].cents]);if(cols.length)copyCells(cols.map(amountPlain),{numeric:true});}
   function chooseTxType(type){
     state.txType=type;
     document.querySelectorAll('[data-tx-type]').forEach(b=>{const on=b.dataset.txType===type;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
@@ -956,12 +959,13 @@
     chooseTxType(preserve?state.txType:'Cancelación');choosePercent(100);renderAmountPreview();
   }
   function clearTransactionForm(){
-    resetForm();$('tx-date').value=today();$('tx-brand').value='';
+    resetForm(true);$('tx-date').value=today();$('tx-brand').value='';
     document.querySelectorAll('[data-tx-copy-field]').forEach(box=>box.checked=true);
-    $('tx-solution').value='';renderAmountPreview();toast('Formulario limpiado completamente');
+    state.solutionManual=true;$('tx-solution').value='';renderAmountPreview();toast('Formulario limpiado completamente');
   }
   async function saveTransaction(ev){
     ev.preventDefault();if(cloudConfigured&&!cloudApi){toast('Inicia sesión con Google para guardar.',true);return;}
+    if($('tx-order-date').value&&!isIsoDate($('tx-order-date').value)){toast('Revisa la fecha del pedido.',true);return;}
     const money=currencyAmounts(),parsed={cents:money.baseCents,invalid:money.original.invalid},fee=false;
     if(money.invalid||money.missingConversion||(money.manual&&money.total===null)){
       toast(money.missingConversion?'Espera la conversión o introduce el importe definitivo en euros manualmente.':'Revisa el importe definitivo antes de guardar.',true);return;
@@ -972,7 +976,7 @@
     const old=state.editingId?records.find(r=>r.id===state.editingId):null;
     const useOld=state.txType==='Cancelación'&&old?.type==='Cancelación';
     const isRefund=state.txType==='Reembolso';
-    const record={id:state.editingId||uid(),date:old?.date||today(),brand:$('tx-brand').value||'',customerName:$('tx-name').value.trim(),trackingNumber:$('tx-tracking').value.trim(),order:old?.order||'',type:state.txType,
+    const record={id:state.editingId||uid(),date:old?.date||today(),orderDate:$('tx-order-date').value,brand:$('tx-brand').value||'',customerName:$('tx-name').value.trim(),trackingNumber:$('tx-tracking').value.trim(),order:old?.order||'',type:state.txType,
       country:$('tx-country').value,countryName:currentCountry().name,currency:currentCountry().currency,originalAmount:$('tx-base').value.trim(),exchangeRate:fx.rate,exchangeRateDate:fx.date,amountMode:money.manual||money.keepHistoricalAmount?'manual':'auto',baseCents:parsed.cents,amountCents:money.total,percent:isRefund?state.percent:100,fee,refundMode:mode,
       status:isRefund?($('tx-status').value||'Resuelto'):(useOld?old.status:'Resuelto'),finalText:isRefund?$('tx-final-text').value.trim():(old?.finalText||''),notes:isRefund?notesValue():(useOld?old.notes:''),solution:isRefund?$('tx-solution').value.trim():(useOld?old.solution:''),rawAmount:parsed.invalid?$('tx-base').value.trim():'',source:'Registro manual',createdAt:new Date().toISOString()};
     const wasEdit=Boolean(state.editingId);
@@ -998,7 +1002,7 @@
   function editTransaction(id){
     const r=records.find(x=>x.id===id);if(!r)return;state.editingId=r.id;
     $('form-title').textContent='Editar movimiento';$('tx-save').textContent='✓ Guardar cambios';$('tx-cancel-edit').hidden=false;
-    chooseTxType(r.type);if(r.brand&&!Array.from($('tx-brand').options).some(option=>option.value===r.brand))$('tx-brand').add(new Option(storeName(r.brand),r.brand));$('tx-brand').value=r.brand;$('tx-date').value=r.date||today();$('tx-name').value=r.customerName||'';$('tx-tracking').value=r.trackingNumber||'';
+    chooseTxType(r.type);if(r.brand&&!Array.from($('tx-brand').options).some(option=>option.value===r.brand))$('tx-brand').add(new Option(storeName(r.brand),r.brand));$('tx-brand').value=r.brand;$('tx-date').value=r.date||today();$('tx-order-date').value=r.orderDate||'';$('tx-name').value=r.customerName||'';$('tx-tracking').value=r.trackingNumber||'';
     restoreCurrency(r);
     if(r.type==='Reembolso'&&r.refundMode==='fee20')chooseFeeOnly();else choosePercent(r.percent);
     $('tx-status').value=r.status;populateNotes(r.notes);$('tx-final-text').value=r.finalText||'';$('tx-final-text').dataset.motive=formatMotive(r.notes);$('tx-final-text').readOnly=true;
@@ -1016,16 +1020,17 @@
   }
   function txCopyValue(row){
     const checks=[...document.querySelectorAll('[data-tx-copy-field]:checked')].map(x=>x.dataset.txCopyField);
-    
-    return [row.customerName||'',dateForExcel(row.date),row.trackingNumber||'',...checks.map(key=>{
+    if(!checks.length){toast('Marca al menos una columna para copiar.',true);return null;}
+    return checks.map(key=>{
+      if(key==='orderDate')return row.orderDate?dateForExcel(row.orderDate):'';
       if(key==='solution')return row.solution||suggestedSolution(row.type,row.percent,row.refundMode,row.baseCents);
       return row[key]||'';
-    })];
+    });
   }
   function copyRecord(id){const r=records.find(x=>x.id===id);if(!r)return;const cells=txCopyValue(r);if(cells!==null)copyCells(cells);}
   function copyFormDetails(){
     const p={cents:currencyAmounts().baseCents};
-    const cells=txCopyValue({customerName:$('tx-name').value.trim(),date:records.find(record=>record.id===state.editingId)?.date||today(),trackingNumber:$('tx-tracking').value.trim(),status:$('tx-status').value,finalText:$('tx-final-text').value.trim(),notes:notesValue(),solution:$('tx-solution').value.trim(),type:state.txType,percent:state.percent,refundMode:state.refundMode,baseCents:p.cents});
+    const cells=txCopyValue({customerName:$('tx-name').value.trim(),orderDate:$('tx-order-date').value,trackingNumber:$('tx-tracking').value.trim(),status:$('tx-status').value,finalText:$('tx-final-text').value.trim(),notes:notesValue(),solution:$('tx-solution').value.trim(),type:state.txType,percent:state.percent,refundMode:state.refundMode,baseCents:p.cents});
     if(cells!==null)copyCells(cells);
   }
   async function saveProduct(ev){
@@ -1637,7 +1642,7 @@ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()
     });
     $('copy-form-details').addEventListener('click',copyFormDetails);
     $('parts-clear').addEventListener('click',()=>{state.partCart=[];refreshPartSentence();});
-    $('tx-form').addEventListener('submit',saveTransaction);$('tx-reset').addEventListener('click',clearTransactionForm);$('tx-cancel-edit').addEventListener('click',()=>resetForm());
+    $('tx-form').addEventListener('submit',saveTransaction);$('tx-reset').addEventListener('click',clearTransactionForm);$('tx-reset-top').addEventListener('click',clearTransactionForm);$('tx-cancel-edit').addEventListener('click',()=>resetForm());
     document.querySelectorAll('[data-tx-type]').forEach(b=>b.addEventListener('click',()=>chooseTxType(b.dataset.txType)));
     document.querySelectorAll('[data-percent]').forEach(b=>b.addEventListener('click',()=>choosePercent(Number(b.dataset.percent))));
     $('tx-fee-only').addEventListener('click',chooseFeeOnly);
@@ -1653,9 +1658,7 @@ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()
       else if(b.dataset.cartRemove){state.partCart=state.partCart.filter(p=>p.id!==b.dataset.cartRemove);refreshPartSentence();}
       else if(b.dataset.select){selectItem(b.dataset.kind,b.dataset.select,true);}
       else if(b.dataset.copyItem){copyItem(b.dataset.kind,b.dataset.copyItem);}
-      else if(b.dataset.sumCopy){const [brand,type]=b.dataset.sumCopy.split('|');copyMetric(brand,type,b.dataset.sumDate||state.cashDate);}
       else if(b.dataset.brandTotal){copyCells([amountPlain(combinedTotals(dailyTotals(state.cashDate)[b.dataset.brandTotal]).cents)],{numeric:true});}
-      else if(b.dataset.copyFour){copyFour(b.dataset.copyFour);}
       else if(b.dataset.editRecord){editTransaction(b.dataset.editRecord);}
       else if(b.dataset.deleteRecord){removeTransaction(b.dataset.deleteRecord);}
       else if(b.dataset.copyRecord){copyRecord(b.dataset.copyRecord);}
