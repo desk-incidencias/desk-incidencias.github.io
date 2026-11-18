@@ -701,6 +701,9 @@
   let localAvailable=true;
   const state={page:'movimientos',moneyTab:'dia',cashDate:today(),copyMode:'excel',kind:'plantillas',selected:{plantillas:seed.templates[0]?.id,repuestos:seed.parts[0]?.id},tplNotePrefix:'',
     tplSearch:'',tplFilter:'',partsSearch:'',partsFilter:'',historySearch:'',historyBrand:'',historyType:'',historyDate:'',historyLimit:100,txType:'Cancelación',percent:100,refundMode:'percent',solutionManual:false,editingId:null,partCart:[]};
+  const transactionDrafts=new Map();
+  let transactionDraftSequence=0;
+  let transactionDraftVersion=0;
   const basePartProducts = [
     {id:'cabezal15',brand:'Oasis',category:'Cabezales',singular:'cabezal Oasis con filtración 15 etapas con vitamina C',plural:'cabezales Oasis con filtración 15 etapas con vitamina C'},
     {id:'triaction',brand:'Oasis',category:'Cabezales',singular:'cabezal Oasis Tri-Action (cal, cloro y metales)',plural:'cabezales Oasis Tri-Action (cal, cloro y metales)'},
@@ -754,7 +757,7 @@
     products(items){partProducts=[...basePartProducts,...items.filter(p=>p&&/^custom-/.test(p.id)&&validStoreId(p.brand)&&typeof p.singular==='string'&&typeof p.plural==='string').map(p=>({id:p.id,brand:p.brand,singular:p.singular.slice(0,160),plural:p.plural.slice(0,160),category:String(p.category||'Accesorios').slice(0,80)}))];renderPartProducts();},
     records(list){records=Array.isArray(list)?list.slice(0,50000).map(normalizeRecord).filter(Boolean):[];renderMoney();if(state.page==='resumen')renderSummary();setStorageLabel('Datos en la nube');$('cloud-gate').hidden=true;document.querySelector('.app-shell').hidden=false;document.querySelector('.app-shell').inert=false;$('cloud-login').disabled=false;$('cloud-gate-message').textContent='';},
     overrides(overrides){templateOverrides=(overrides&&typeof overrides==='object')?overrides:{};if(state.page==='plantillas'&&state.selected.plantillas){displaySelected('plantillas');}},
-    signedOut(){$('slack-report-dialog').close();$('slack-report-content').innerHTML='';$('slack-report-date').textContent='';$('country-dialog').close();$('store-dialog').close();fxRequest++;fxController?.abort();$('reason-dialog').close();$('management-status').value='';resetTips();$('tips-dialog').close();libraryChanges={templates:{},products:{}};$('library-dialog').close();$('library-form').reset();$('answer-draft').value='';$('answer-draft').readOnly=true;$('product-draft').value='';$('product-draft').readOnly=true;partProducts=[...basePartProducts];$('product-dialog').close();$('product-form').reset();renderPartProducts();clearTimeout(templateSaveTimer);resetForm();$('compose-text').value='';state.selected.plantillas=null;state.partCart=[];document.querySelector('.app-shell').hidden=true;document.querySelector('.app-shell').inert=true;cloudApi=null;cloudSession=null;records=[];templateOverrides={};renderMoney();$('cloud-user').hidden=true;$('cloud-gate').hidden=false;$('cloud-login').disabled=false;$('cloud-gate-message').textContent='';setStorageLabel();},
+    signedOut(){transactionDrafts.clear();$('slack-report-dialog').close();$('slack-report-content').innerHTML='';$('slack-report-date').textContent='';$('country-dialog').close();$('store-dialog').close();fxRequest++;fxController?.abort();$('reason-dialog').close();$('management-status').value='';resetTips();$('tips-dialog').close();libraryChanges={templates:{},products:{}};$('library-dialog').close();$('library-form').reset();$('answer-draft').value='';$('answer-draft').readOnly=true;$('product-draft').value='';$('product-draft').readOnly=true;partProducts=[...basePartProducts];$('product-dialog').close();$('product-form').reset();renderPartProducts();clearTimeout(templateSaveTimer);resetForm();$('compose-text').value='';state.selected.plantillas=null;state.partCart=[];document.querySelector('.app-shell').hidden=true;document.querySelector('.app-shell').inert=true;cloudApi=null;cloudSession=null;records=[];templateOverrides={};renderMoney();$('cloud-user').hidden=true;$('cloud-gate').hidden=false;$('cloud-login').disabled=false;$('cloud-gate-message').textContent='';setStorageLabel();},
     error(message){document.querySelector('.app-shell').hidden=true;document.querySelector('.app-shell').inert=true;$('cloud-login').disabled=false;$('cloud-gate').hidden=false;$('cloud-gate-message').textContent=message||'No se pudo conectar. Revisa Firebase e inténtalo de nuevo.';setStorageLabel('Error de nube');},
     status(message){setStorageLabel(message);}
   };
@@ -777,7 +780,7 @@
         if(!cloudApi)throw Error('Debes iniciar sesión con Google primero');
         setStorageLabel('Importando…');await cloudApi.replaceAll(imported);setStorageLabel('Datos en la nube');
       } else {records=imported;persist();}
-      resetForm();renderMoney();toast('Respaldo restaurado'+(cloudConfigured?' en la nube':''));$('backup-dialog').close();
+      transactionDrafts.clear();resetForm();renderMoney();toast('Respaldo restaurado'+(cloudConfigured?' en la nube':''));$('backup-dialog').close();
     }catch(e){toast('No se pudo importar: '+String(e.message||e),true);}finally{$('backup-file').value='';}}
   // Envía una tabla real, además del formato de texto separado por tabulaciones.
   // Sheets y Excel pueden reconocer cada elemento como una celda independiente.
@@ -957,6 +960,58 @@
     state.solutionManual=false;
     renderAmountPreview();
   }
+  function switchTransactionType(type){
+    if(type===state.txType)return;
+    transactionDrafts.set(state.txType,{
+      version:transactionDraftVersion,
+      fields:Array.from($('tx-form').querySelectorAll('input[id],select[id],textarea[id]'),field=>({
+        id:field.id,value:field.value,checked:field.checked,readOnly:field.readOnly
+      })),
+      columns:Array.from(document.querySelectorAll('[data-tx-copy-field]'),box=>box.checked),
+      editingId:state.editingId,percent:state.percent,refundMode:state.refundMode,
+      solutionManual:state.solutionManual,motive:$('tx-final-text').dataset.motive||'',
+      currency:{...fx},historicalCountry
+    });
+    const draft=transactionDrafts.get(type);
+    fxRequest++;
+    fxController?.abort();
+    fxController=null;
+    if(!draft){
+      state.txType=type;
+      resetForm(true);
+      return;
+    }
+    transactionDraftVersion=draft.version;
+    state.editingId=draft.editingId;
+    historicalCountry=draft.historicalCountry;
+    fx={...draft.currency,loading:false};
+    const savedValue=id=>draft.fields.find(field=>field.id===id)?.value||'';
+    renderCountries(savedValue('tx-country'));
+    const brand=savedValue('tx-brand');
+    if(brand&&!Array.from($('tx-brand').options).some(option=>option.value===brand)){
+      $('tx-brand').add(new Option(storeName(brand),brand));
+    }
+    populateNotes(savedValue('tx-notes'));
+    chooseTxType(type);
+    if(draft.refundMode==='fee20')chooseFeeOnly();else choosePercent(draft.percent);
+    for(const saved of draft.fields){
+      const field=$(saved.id);
+      field.value=saved.value;
+      field.checked=saved.checked;
+      field.readOnly=saved.readOnly;
+    }
+    document.querySelectorAll('[data-tx-copy-field]').forEach((box,index)=>box.checked=draft.columns[index]);
+    $('tx-final-text').dataset.motive=draft.motive;
+    state.solutionManual=draft.solutionManual;
+    if(!state.editingId)$('tx-date').value=today();
+    $('form-title').textContent=state.editingId?'Editar movimiento':'Nuevo movimiento';
+    $('tx-save').textContent=state.editingId?'✓ Guardar cambios':'＋ Guardar movimiento';
+    $('tx-cancel-edit').hidden=!state.editingId;
+    renderAmountPreview();
+    if(currentCountry().currency!=='EUR'&&(!fx.rate||fx.currency!==currentCountry().currency)){
+      fetchCurrencyRate();
+    }
+  }
   function choosePercent(percent){
     state.percent=percent;state.refundMode='percent';state.solutionManual=false;
     document.querySelectorAll('[data-percent]').forEach(b=>b.classList.toggle('selected',Number(b.dataset.percent)===percent));
@@ -969,7 +1024,7 @@
     $('tx-fee-only').classList.add('active');$('tx-fee-only').setAttribute('aria-pressed','true');
     renderAmountPreview();
   }
-  function resetForm(preserve=false){$('tx-final-text').dataset.motive='';$('tx-final-text').value='';$('tx-final-text').readOnly=true;
+  function resetForm(preserve=false){transactionDraftVersion=++transactionDraftSequence;$('tx-final-text').dataset.motive='';$('tx-final-text').value='';$('tx-final-text').readOnly=true;
     state.editingId=null;$('tx-form').reset();resetCurrency();notesVisibility();state.solutionManual=false;
     $('form-title').textContent='Nuevo movimiento';$('tx-save').innerHTML='<span aria-hidden="true">＋</span> Guardar movimiento';$('tx-cancel-edit').hidden=true;
     $('tx-date').value=today();$('tx-brand').value=preserve?($('tx-brand').value||activeStores()[0]?.id||''):(activeStores()[0]?.id||'');
@@ -1002,7 +1057,7 @@
     const wasEdit=Boolean(state.editingId);
     if(wasEdit)record.createdAt=old?.createdAt||record.createdAt;
     if(record.date)state.cashDate=record.date;
-    const api=cloudApi;
+    const api=cloudApi,saveVersion=transactionDraftVersion;
     $('tx-save').disabled=true;
     try{
       if(!api)throw Error('Inicia sesión con Google');
@@ -1013,6 +1068,9 @@
       toast(wasEdit?'Cambios guardados en la nube':'Movimiento guardado en la nube');
     }catch(e){setStorageLabel('Error al guardar');toast('No se guardó en la nube: '+e.message,true);return;}
     finally{$('tx-save').disabled=false;}
+    const savedDraft=transactionDrafts.get(record.type);
+    if(savedDraft?.version===saveVersion)savedDraft.editingId=record.id;
+    if(saveVersion!==transactionDraftVersion){renderMoney();return;}
     state.editingId=record.id;
     $('form-title').textContent='Editar movimiento';
     $('tx-save').textContent='✓ Guardar cambios';
@@ -1020,7 +1078,10 @@
     renderMoney();
   }
   function editTransaction(id){
-    const r=records.find(x=>x.id===id);if(!r)return;state.editingId=r.id;
+    const r=records.find(x=>x.id===id);if(!r)return;
+    switchTransactionType(r.type);
+    transactionDraftVersion=++transactionDraftSequence;
+    state.editingId=r.id;
     $('form-title').textContent='Editar movimiento';$('tx-save').textContent='✓ Guardar cambios';$('tx-cancel-edit').hidden=false;
     chooseTxType(r.type);if(r.brand&&!Array.from($('tx-brand').options).some(option=>option.value===r.brand))$('tx-brand').add(new Option(storeName(r.brand),r.brand));$('tx-brand').value=r.brand;$('tx-date').value=r.date||today();$('tx-order-date').value=r.orderDate||'';$('tx-name').value=r.customerName||'';$('tx-order-number').value=r.order||'';$('tx-tracking').value=r.trackingNumber||'';
     restoreCurrency(r);
@@ -1035,7 +1096,7 @@
     const r=records.find(x=>x.id===id);if(!r||!cloudApi)return;
     if(!confirm(`¿Eliminar este movimiento (${r.order||r.type})? Descarga un respaldo si necesitas conservarlo.`))return;
     const api=cloudApi;
-    try{setStorageLabel('Eliminando…');await api.remove(id);if(api!==cloudApi)return;if(state.editingId===id)resetForm();setStorageLabel('Datos en la nube');toast('Movimiento eliminado de la nube');}
+    try{setStorageLabel('Eliminando…');await api.remove(id);if(api!==cloudApi)return;for(const [type,draft] of transactionDrafts){if(draft.editingId===id)transactionDrafts.delete(type);}if(state.editingId===id)resetForm(true);setStorageLabel('Datos en la nube');toast('Movimiento eliminado de la nube');}
     catch(e){setStorageLabel('Error al eliminar');toast('No se eliminó: '+e.message,true);}
   }
   function txCopyValue(row){
@@ -1699,7 +1760,7 @@ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()
     $('copy-form-details').addEventListener('click',copyFormDetails);
     $('parts-clear').addEventListener('click',()=>{state.partCart=[];refreshPartSentence();});
     $('tx-form').addEventListener('submit',saveTransaction);$('tx-reset').addEventListener('click',clearTransactionForm);$('tx-reset-top').addEventListener('click',clearTransactionForm);$('tx-cancel-edit').addEventListener('click',()=>resetForm());
-    document.querySelectorAll('[data-tx-type]').forEach(b=>b.addEventListener('click',()=>chooseTxType(b.dataset.txType)));
+    document.querySelectorAll('[data-tx-type]').forEach(b=>b.addEventListener('click',()=>switchTransactionType(b.dataset.txType)));
     document.querySelectorAll('[data-percent]').forEach(b=>b.addEventListener('click',()=>choosePercent(Number(b.dataset.percent))));
     $('tx-fee-only').addEventListener('click',chooseFeeOnly);
     $('tx-solution').addEventListener('input',()=>{state.solutionManual=true;});
