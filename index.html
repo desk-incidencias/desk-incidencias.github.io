@@ -97,7 +97,8 @@
 @media(max-width:950px){.summary-controls{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.summary-ring-layout{grid-template-columns:1fr;gap:18px}.summary-ring{max-width:195px}.summary-controls{padding:13px;gap:10px}.summary-breakdown-item{padding:11px}.summary-bar-line{grid-template-columns:82px minmax(25px,1fr) minmax(44px,auto);gap:7px}.summary-bar-group{padding:11px}.summary-panel{padding:16px}}
 .summary-pie-svg{width:100%;max-width:360px;display:block;margin:auto}.summary-pie-label{fill:#263956;font-size:12px;font-weight:800}.summary-ring-layout{grid-template-columns:minmax(230px,360px) minmax(0,1fr);gap:clamp(10px,4vw,42px);margin-top:12px}.summary-dashboard .cancellations{background:#5574f6}.summary-dashboard .refunds{background:#14cbb8}
 #summary-bars{background:linear-gradient(150deg,#172657,#202e72);color:#fff;border-color:#21316f}#summary-bars .summary-eyebrow{color:#a7b7ef}#summary-bars .summary-period-badge{background:#ffffff16;color:#e8eeff}#summary-bars .summary-description,#summary-bars .summary-key,#summary-bars .summary-empty{color:#d9e2ff}.summary-columns-scroll{overflow-x:auto;margin-top:14px;scrollbar-color:#6476b2 #192655}.summary-columns-svg{display:block;width:100%;height:auto;max-height:370px;overflow:visible}.summary-columns-svg text{fill:#d9e2ff;font-size:11px;font-weight:600}.summary-columns-svg .summary-column-value{fill:#fff;font-size:10px;font-weight:800}.summary-gridline{stroke:#dce4ff;stroke-opacity:.28}.summary-figures{margin-top:10px;color:#e1e8ff;font-size:12px}.summary-figures summary{cursor:pointer;width:max-content;padding:5px 0}.summary-figures table{width:100%;border-collapse:collapse;margin-top:8px}.summary-figures th,.summary-figures td{padding:8px;text-align:left;border-bottom:1px solid #ffffff25}.summary-figures td{font-variant-numeric:tabular-nums}@media(max-width:680px){.summary-ring-layout{grid-template-columns:1fr}.summary-pie-svg{max-width:290px}}
-</style><style>.library-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,.65fr);gap:10px;align-items:end}@media(max-width:420px){.library-filters{grid-template-columns:1fr}}</style><style>.country-actions{margin-top:7px}.country-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}.country-label label{color:#536c6b;font-size:11.5px;font-weight:780}</style></head>
+</style><style>.library-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,.65fr);gap:10px;align-items:end}@media(max-width:420px){.library-filters{grid-template-columns:1fr}}</style><style>.country-actions{margin-top:7px}.country-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}.country-label label{color:#536c6b;font-size:11.5px;font-weight:780}</style><style>#slack-report-dialog{max-width:1100px;width:calc(100% - 24px)}.stores-products-table{min-width:480px}.stores-products-table td{white-space:normal}.stores-products-table .library-actions{flex-wrap:nowrap}</style>
+</head>
 <body>
 <div class="app-shell" hidden inert>
   <aside class="sidebar">
@@ -130,7 +131,7 @@
     </header>
     <main id="main-content">
 <section class="view" id="view-plantillas" aria-labelledby="management-title" hidden>
-  <div class="section-intro"><div><h1 id="management-title">Gestión <span class="accent-text">Incidencias</span></h1><p>Selecciona una respuesta o combina varios repuestos para preparar tu texto.</p></div></div>
+  <div class="section-intro"><div><h1 id="management-title">Gestión <span class="accent-text">Incidencias</span></h1><p>Selecciona una respuesta o combina varios repuestos para preparar tu texto.</p></div><button id="management-clear-all" class="btn btn-outline" type="button">Limpiar datos</button></div>
   <div class="management-grid">
     <article class="card-panel library-panel">
       <h2>Biblioteca de respuestas</h2>
@@ -179,7 +180,7 @@
 </div></section>
 <dialog id="store-dialog" class="modal" aria-labelledby="store-dialog-title"><form id="store-form" class="modal-content reason-panel"><div class="modal-head"><h2 id="store-dialog-title">Nueva tienda</h2><button id="store-close" class="icon-dismiss" type="button" aria-label="Cerrar">✕</button></div><div class="field"><label for="store-name">Nombre de la tienda</label><input id="store-name" required maxlength="100"></div><p id="store-error" class="product-error" role="status"></p><button id="store-save" class="btn btn-primary" type="submit">Guardar tienda</button></form></dialog>
 <section class="view" id="view-tips" aria-labelledby="tips-title" hidden>
-<div class="section-intro"><div><span class="eyebrow"><span class="eyebrow-dot"></span> ATENCIÓN AL CLIENTE</span><h1 id="tips-title">Tips <span class="accent-text">Plantillas</span></h1><p>Respuestas para tus clientes, separadas de las notas de Gestión Incidencias.</p></div></div>
+<div class="section-intro"><div><span class="eyebrow"><span class="eyebrow-dot"></span> ATENCIÓN AL CLIENTE</span><h1 id="tips-title">Tips <span class="accent-text">Plantillas</span></h1><p>Respuestas para tus clientes, separadas de las notas de Gestión Incidencias.</p></div><button id="tips-clear-all" class="btn btn-outline" type="button">Limpiar datos</button></div>
 <div class="card-panel tips-panel">
  <div class="tips-heading"><h2>Biblioteca de tips</h2><button id="tips-new" class="btn btn-primary" type="button">＋ Nuevo tip</button></div>
  <div class="tips-filters"><div class="field"><label for="tips-brand">Tienda</label><select id="tips-brand"><option>Oasis</option><option>BioPets</option></select></div><div class="field"><label for="tips-search">Buscar</label><input id="tips-search" type="search" placeholder="Título o palabra de la respuesta…"></div></div>
@@ -217,14 +218,15 @@
         <div class="money-layout">
           <div id="money-dynamic" class="money-content" aria-live="polite"></div>
           <aside class="editor-card" id="transaction-editor">
-            <div class="form-head"><div class="round-icon mint-icon">＋</div><div><span class="eyebrow dark-eyebrow">REGISTRO RÁPIDO</span><h2 id="form-title">Nuevo movimiento</h2><p>Todos los campos son opcionales.</p></div></div>
+            <div class="form-head"><div class="round-icon mint-icon">＋</div><div><span class="eyebrow dark-eyebrow">REGISTRO RÁPIDO</span><h2 id="form-title">Nuevo movimiento</h2><p>Completa los datos para guardar el movimiento.</p></div></div>
             <form id="tx-form" novalidate>
               <button id="tx-reset-top" type="button" class="btn btn-ghost full-width">Limpiar formulario</button>
               <label class="label">Tipo de operación</label>
               <div class="pill-toggle" role="group" aria-label="Tipo de operación"><button type="button" class="pill-option active" data-tx-type="Cancelación" aria-pressed="true">Cancelación</button><button type="button" class="pill-option" data-tx-type="Reembolso" aria-pressed="false">Reembolso</button></div>
-              <div class="two-fields"><div class="field"><label for="tx-brand">Tienda</label><select id="tx-brand"><option value="Oasis">Oasis</option><option value="BioPets">BioPets</option><option value="">Sin especificar</option></select></div><div class="field"><label for="tx-name">Nombre</label><input id="tx-name" type="text" placeholder="Nombre del cliente (opcional)" maxlength="160" autocomplete="off"></div></div>
+              <div class="two-fields"><div class="field"><label for="tx-brand">Tienda</label><select id="tx-brand"><option value="Oasis">Oasis</option><option value="BioPets">BioPets</option><option value="">Sin especificar</option></select></div><div class="field"><label for="tx-order-number">Número del pedido</label><input id="tx-order-number" type="text" maxlength="200" autocomplete="off"></div></div>
+              <div class="field"><label for="tx-name">Nombre</label><input id="tx-name" type="text" placeholder="Nombre del cliente" maxlength="160" autocomplete="off"></div>
               <div class="two-fields"><div class="field"><label for="tx-date">Fecha</label><input id="tx-date" type="date" readonly></div><div class="field"><label for="tx-order-date">Fecha del pedido</label><input id="tx-order-date" type="date"></div></div>
-              <div class="field"><label for="tx-tracking">N.º de seguimiento</label><input id="tx-tracking" type="text" placeholder="Seguimiento (opcional)" maxlength="200" autocomplete="off"></div>
+              <div class="field refund-exclusive" hidden><label for="tx-tracking">N.º de seguimiento</label><input id="tx-tracking" type="text" placeholder="Número de seguimiento" maxlength="200" autocomplete="off"></div>
               <div class="field currency-country"><div class="country-label"><label for="tx-country">País</label><button id="country-add" class="btn btn-outline btn-tiny" type="button">＋ Nuevo país</button></div><select id="tx-country"><option value="CO">Colombia</option><option value="CL">Chile</option><option value="US">Estados Unidos</option><option value="MX">México</option><option value="ES" selected>España</option></select><div class="library-actions country-actions"><button id="country-edit" class="btn btn-outline btn-tiny" type="button">Modificar país</button><button id="country-delete" class="btn btn-ghost btn-tiny" type="button">Eliminar país</button></div></div>
               <div class="two-fields"><div class="field"><label id="tx-base-label" for="tx-base">Importe original (€)</label><input id="tx-base" type="text" inputmode="decimal" placeholder="Ej. 59,90" maxlength="40"></div></div>
               <div id="tx-conversion" class="conversion-box" hidden><div class="field"><label for="tx-approx-eur">Importe aproximado en €</label><input id="tx-approx-eur" type="text" readonly placeholder="Pendiente de conversión"></div><p id="tx-rate-info" role="status"></p><button id="tx-rate-refresh" type="button" class="btn btn-outline btn-tiny">Actualizar cambio</button></div>
@@ -354,6 +356,12 @@
   <div id="library-text-field" class="field"><label for="library-text">Texto de la respuesta</label><textarea id="library-text" maxlength="5000"></textarea><small>Haz doble clic para editar. Haz clic en un espacio vacío del formulario para bloquear el texto.</small></div>
   <p id="library-error" role="status"></p><button id="library-save" class="btn btn-primary" type="submit">Guardar</button>
 </form></dialog>
+<dialog id="slack-report-dialog" class="modal" aria-labelledby="slack-report-title">
+  <div class="modal-content">
+    <div class="modal-head"><h2 id="slack-report-title">Reporte Slack</h2><button id="slack-report-close" class="icon-dismiss" type="button" aria-label="Cerrar reporte">✕</button></div>
+    <p id="slack-report-date"></p><div id="slack-report-content" class="table-scroll"></div>
+  </div>
+</dialog>
 <dialog id="country-dialog" class="modal" aria-labelledby="country-title">
 <form id="country-form" class="modal-content reason-panel">
 <div class="modal-head"><h2 id="country-title">Nuevo país</h2><button id="country-close" class="icon-dismiss" type="button" aria-label="Cerrar">✕</button></div>
@@ -746,7 +754,7 @@
     products(items){partProducts=[...basePartProducts,...items.filter(p=>p&&/^custom-/.test(p.id)&&validStoreId(p.brand)&&typeof p.singular==='string'&&typeof p.plural==='string').map(p=>({id:p.id,brand:p.brand,singular:p.singular.slice(0,160),plural:p.plural.slice(0,160),category:String(p.category||'Accesorios').slice(0,80)}))];renderPartProducts();},
     records(list){records=Array.isArray(list)?list.slice(0,50000).map(normalizeRecord).filter(Boolean):[];renderMoney();if(state.page==='resumen')renderSummary();setStorageLabel('Datos en la nube');$('cloud-gate').hidden=true;document.querySelector('.app-shell').hidden=false;document.querySelector('.app-shell').inert=false;$('cloud-login').disabled=false;$('cloud-gate-message').textContent='';},
     overrides(overrides){templateOverrides=(overrides&&typeof overrides==='object')?overrides:{};if(state.page==='plantillas'&&state.selected.plantillas){displaySelected('plantillas');}},
-    signedOut(){$('country-dialog').close();$('store-dialog').close();fxRequest++;fxController?.abort();$('reason-dialog').close();$('management-status').value='';resetTips();$('tips-dialog').close();libraryChanges={templates:{},products:{}};$('library-dialog').close();$('library-form').reset();$('answer-draft').value='';$('answer-draft').readOnly=true;$('product-draft').value='';$('product-draft').readOnly=true;partProducts=[...basePartProducts];$('product-dialog').close();$('product-form').reset();renderPartProducts();clearTimeout(templateSaveTimer);resetForm();$('compose-text').value='';state.selected.plantillas=null;state.partCart=[];document.querySelector('.app-shell').hidden=true;document.querySelector('.app-shell').inert=true;cloudApi=null;cloudSession=null;records=[];templateOverrides={};renderMoney();$('cloud-user').hidden=true;$('cloud-gate').hidden=false;$('cloud-login').disabled=false;$('cloud-gate-message').textContent='';setStorageLabel();},
+    signedOut(){$('slack-report-dialog').close();$('slack-report-content').innerHTML='';$('slack-report-date').textContent='';$('country-dialog').close();$('store-dialog').close();fxRequest++;fxController?.abort();$('reason-dialog').close();$('management-status').value='';resetTips();$('tips-dialog').close();libraryChanges={templates:{},products:{}};$('library-dialog').close();$('library-form').reset();$('answer-draft').value='';$('answer-draft').readOnly=true;$('product-draft').value='';$('product-draft').readOnly=true;partProducts=[...basePartProducts];$('product-dialog').close();$('product-form').reset();renderPartProducts();clearTimeout(templateSaveTimer);resetForm();$('compose-text').value='';state.selected.plantillas=null;state.partCart=[];document.querySelector('.app-shell').hidden=true;document.querySelector('.app-shell').inert=true;cloudApi=null;cloudSession=null;records=[];templateOverrides={};renderMoney();$('cloud-user').hidden=true;$('cloud-gate').hidden=false;$('cloud-login').disabled=false;$('cloud-gate-message').textContent='';setStorageLabel();},
     error(message){document.querySelector('.app-shell').hidden=true;document.querySelector('.app-shell').inert=true;$('cloud-login').disabled=false;$('cloud-gate').hidden=false;$('cloud-gate-message').textContent=message||'No se pudo conectar. Revisa Firebase e inténtalo de nuevo.';setStorageLabel('Error de nube');},
     status(message){setStorageLabel(message);}
   };
@@ -919,7 +927,16 @@
   function dailyPane(){const totals=dailyTotals(state.cashDate);const todayRecords=activeRecords(state.cashDate);const review=records.filter(r=>r.rawAmount && r.amountCents==null).length;
     return `${review?`<div class="app-notice"><span>⚠</span><div><strong>${review} importe${review>1?'s':''} pendiente${review>1?'s':''} de revisar.</strong> Aparece en el historial y no se suma hasta corregirlo.</div></div>`:''}
       ${Object.keys(totals).map(brand=>`<div class="metric-store-group">${metricCard(brand,'Cancelación',totals[brand]['Cancelación'])}${metricCard(brand,'Reembolso',totals[brand]['Reembolso'])}${combinedMetricCard(brand,totals[brand])}</div>`).join('')}
-      <div class="pane-block"><div class="pane-heading"><div><h2>Movimientos del ${escape(displayDate(state.cashDate))}</h2><p>Usa Editar si necesitas corregir un importe.</p></div><span class="mini-count">${todayRecords.length} registrados</span></div>${recordTable(todayRecords)}</div>`;
+      <div class="pane-block"><div class="pane-heading"><div><h2>Movimientos del ${escape(displayDate(state.cashDate))}</h2><p>Usa Editar si necesitas corregir un importe.</p></div><span class="mini-count">${todayRecords.length} registrados</span></div>${recordTable(todayRecords)}<button class="btn btn-outline small-gap" type="button" data-slack-report="${escape(state.cashDate)}">Reporte Slack</button></div>`;
+  }
+  function openSlackReport(date){
+    if(!isIsoDate(date))return;
+    const rows=sorted(activeRecords(date)).sort((a,b)=>(a.type==='Reembolso')-(b.type==='Reembolso'));
+    $('slack-report-date').textContent='Movimientos del '+displayDate(date);
+    $('slack-report-content').innerHTML='<table class="data-table"><thead><tr><th>Fecha del pedido</th><th>Número del pedido</th><th>Tienda</th><th>Nombre del cliente</th><th>Tipo</th><th>Importe final</th></tr></thead><tbody>'+
+      rows.map(record=>'<tr><td>'+escape(record.orderDate?displayDate(record.orderDate):'—')+'</td><td>'+escape(record.order||'—')+'</td><td>'+escape(record.brand?storeName(record.brand):'—')+'</td><td>'+escape(record.customerName||'—')+'</td><td>'+escape(record.type)+'</td><td>'+escape(amountLabel(record.amountCents))+'</td></tr>').join('')+
+      (rows.length?'':'<tr><td colspan="6">No hay movimientos registrados en este día.</td></tr>')+'</tbody></table>';
+    $('slack-report-dialog').showModal();
   }
   function allDaysPane(){const dates=[...new Set(records.map(r=>r.date).filter(isIsoDate))].sort((a,b)=>b.localeCompare(a));const without=records.filter(r=>!r.date).length;
     return `<div class="history-top"><div><h2>Cierres por fecha y tienda</h2><small>Solo se suman movimientos resueltos con importe válido.</small></div></div>
@@ -965,6 +982,9 @@
   }
   async function saveTransaction(ev){
     ev.preventDefault();if(cloudConfigured&&!cloudApi){toast('Inicia sesión con Google para guardar.',true);return;}
+    const required=[['tx-brand','Tienda'],['tx-order-number','Número del pedido'],['tx-name','Nombre del cliente'],['tx-order-date','Fecha del pedido'],['tx-country','País'],['tx-base','Importe original']];
+    if(state.txType==='Reembolso')required.push(['tx-tracking','N.º de seguimiento'],['tx-status','Estado'],['tx-notes','Tipo de incidencia'],['tx-final-text','Texto final generado'],['tx-solution','Solución']);
+    if(!validateRequiredFields(required))return;
     if($('tx-order-date').value&&!isIsoDate($('tx-order-date').value)){toast('Revisa la fecha del pedido.',true);return;}
     const money=currencyAmounts(),parsed={cents:money.baseCents,invalid:money.original.invalid},fee=false;
     if(money.invalid||money.missingConversion||(money.manual&&money.total===null)){
@@ -976,7 +996,7 @@
     const old=state.editingId?records.find(r=>r.id===state.editingId):null;
     const useOld=state.txType==='Cancelación'&&old?.type==='Cancelación';
     const isRefund=state.txType==='Reembolso';
-    const record={id:state.editingId||uid(),date:old?.date||today(),orderDate:$('tx-order-date').value,brand:$('tx-brand').value||'',customerName:$('tx-name').value.trim(),trackingNumber:$('tx-tracking').value.trim(),order:old?.order||'',type:state.txType,
+    const record={id:state.editingId||uid(),date:old?.date||today(),orderDate:$('tx-order-date').value,brand:$('tx-brand').value||'',customerName:$('tx-name').value.trim(),trackingNumber:isRefund?$('tx-tracking').value.trim():(old?.trackingNumber||''),order:$('tx-order-number').value.trim(),type:state.txType,
       country:$('tx-country').value,countryName:currentCountry().name,currency:currentCountry().currency,originalAmount:$('tx-base').value.trim(),exchangeRate:fx.rate,exchangeRateDate:fx.date,amountMode:money.manual||money.keepHistoricalAmount?'manual':'auto',baseCents:parsed.cents,amountCents:money.total,percent:isRefund?state.percent:100,fee,refundMode:mode,
       status:isRefund?($('tx-status').value||'Resuelto'):(useOld?old.status:'Resuelto'),finalText:isRefund?$('tx-final-text').value.trim():(old?.finalText||''),notes:isRefund?notesValue():(useOld?old.notes:''),solution:isRefund?$('tx-solution').value.trim():(useOld?old.solution:''),rawAmount:parsed.invalid?$('tx-base').value.trim():'',source:'Registro manual',createdAt:new Date().toISOString()};
     const wasEdit=Boolean(state.editingId);
@@ -1002,7 +1022,7 @@
   function editTransaction(id){
     const r=records.find(x=>x.id===id);if(!r)return;state.editingId=r.id;
     $('form-title').textContent='Editar movimiento';$('tx-save').textContent='✓ Guardar cambios';$('tx-cancel-edit').hidden=false;
-    chooseTxType(r.type);if(r.brand&&!Array.from($('tx-brand').options).some(option=>option.value===r.brand))$('tx-brand').add(new Option(storeName(r.brand),r.brand));$('tx-brand').value=r.brand;$('tx-date').value=r.date||today();$('tx-order-date').value=r.orderDate||'';$('tx-name').value=r.customerName||'';$('tx-tracking').value=r.trackingNumber||'';
+    chooseTxType(r.type);if(r.brand&&!Array.from($('tx-brand').options).some(option=>option.value===r.brand))$('tx-brand').add(new Option(storeName(r.brand),r.brand));$('tx-brand').value=r.brand;$('tx-date').value=r.date||today();$('tx-order-date').value=r.orderDate||'';$('tx-name').value=r.customerName||'';$('tx-order-number').value=r.order||'';$('tx-tracking').value=r.trackingNumber||'';
     restoreCurrency(r);
     if(r.type==='Reembolso'&&r.refundMode==='fee20')chooseFeeOnly();else choosePercent(r.percent);
     $('tx-status').value=r.status;populateNotes(r.notes);$('tx-final-text').value=r.finalText||'';$('tx-final-text').dataset.motive=formatMotive(r.notes);$('tx-final-text').readOnly=true;
@@ -1290,7 +1310,33 @@
     $('answer-draft').readOnly=true;
     $('product-draft').readOnly=true;
   }
+  function validateRequiredFields(fields){
+    const missing=fields.find(([id])=>!$(id).value.trim());
+    if(!missing)return true;
+    toast('Completa el campo «'+missing[1]+'».',true);
+    $(missing[0]).focus();
+    return false;
+  }
+  function clearManagementData(){
+    for(const id of ['answer-draft','product-draft']){
+      $(id).value='';
+      $(id).readOnly=true;
+    }
+    for(const id of ['management-status','library-search-templates','library-search-products','library-store-products','library-templates','library-products'])$(id).value='';
+    $('library-quantity').value=1;
+    state.partCart=[];
+    state.selected.plantillas=null;
+    state.selected.repuestos=null;
+    state.tplNotePrefix='';
+    $('compose-text').value='';
+    $('compose-text').readOnly=true;
+    for(const box of document.querySelectorAll('[data-management-copy]'))box.checked=true;
+    renderLibraries();
+    toast('Datos limpiados');
+  }
   async function copyManagementForm(){
+    if(!validateRequiredFields([['library-templates','Respuesta'],['answer-draft','Texto de la respuesta'],['management-status','Estado'],['library-products','Repuesto'],['library-quantity','Cantidad'],['product-draft','Texto de productos']]))return;
+    if(!qtyValid(Number($('library-quantity').value))){toast('Indica una cantidad válida.',true);$('library-quantity').focus();return;}
     const fields={answer:$('answer-draft').value,status:$('management-status').value,products:$('product-draft').value};
     const selected=[...document.querySelectorAll('[data-management-copy]:checked')].map(box=>box.dataset.managementCopy);
     if(!selected.length){toast('Marca al menos un dato para copiar.',true);return;}
@@ -1304,6 +1350,7 @@
 
   function bindLibraries(){
     $('management-copy').addEventListener('click',copyManagementForm);
+    $('management-clear-all').addEventListener('click',clearManagementData);
     $('view-plantillas').addEventListener('click',lockManagementDraftsOnEmptyClick);
     for(const kind of ['templates','products']){
       $('library-search-'+kind).addEventListener('input',renderLibraries);
@@ -1421,7 +1468,15 @@
       if(event.target.closest('button,input,select,textarea,label,a'))return;
       draft.readOnly=true;
     });
-    $('tips-copy').addEventListener('click',()=>copyFieldText($('tips-copy'),draft));
+    $('tips-copy').addEventListener('click',()=>{
+      if(!validateRequiredFields([['tips-brand','Tienda'],['tips-select','Tip'],['tips-draft','Texto de la respuesta']]))return;
+      copyFieldText($('tips-copy'),draft);
+    });
+    $('tips-clear-all').addEventListener('click',()=>{
+      $('tips-brand').value=activeStores()[0]?.id||'';
+      resetTips();
+      toast('Datos limpiados');
+    });
     $('tips-clear').addEventListener('click',resetTips);
     $('tips-new').addEventListener('click',()=>openTipForm());
     $('tips-edit').addEventListener('click',()=>{const item=currentTip();if(item)openTipForm(item);});
@@ -1529,7 +1584,7 @@
     const id=$('stores-select').value;
     const products=libraryItems('products').filter(item=>item.brand===id);
     for(const key of ['stores-edit','stores-delete','stores-add-product'])$(key).disabled=!id;
-    $('stores-products').innerHTML=products.map(item=>`<div class="store-product-row"><strong>${escape(item.title)}</strong><div class="library-actions"><button class="btn btn-outline btn-tiny" type="button" data-store-product-edit="${escape(item.id)}">Modificar</button><button class="btn btn-ghost btn-tiny" type="button" data-store-product-delete="${escape(item.id)}">Eliminar</button></div></div>`).join('')||'<p class="tips-hint">No hay productos para esta tienda.</p>';
+    $('stores-products').innerHTML=products.length?`<div class="table-scroll"><table class="data-table stores-products-table"><thead><tr><th>Producto</th><th>Tienda</th><th>Acciones</th></tr></thead><tbody>${products.map(item=>`<tr><td><strong>${escape(item.title)}</strong></td><td>${escape(storeName(item.brand))}</td><td><div class="library-actions"><button class="btn btn-outline btn-tiny" type="button" data-store-product-edit="${escape(item.id)}">Modificar</button><button class="btn btn-ghost btn-tiny" type="button" data-store-product-delete="${escape(item.id)}">Eliminar</button></div></td></tr>`).join('')}</tbody></table></div>`:'<p class="tips-hint">No hay productos para esta tienda.</p>';
   }
   let editingStoreId=null;
   function openStoreForm(id){
@@ -1609,6 +1664,7 @@
 
   function bindEvents(){
     bindSummary();
+    $('slack-report-close').addEventListener('click',()=>$('slack-report-dialog').close());
     bindStores();
     bindCurrency();bindIncidentTypes();
     bindTips();
@@ -1662,6 +1718,7 @@ document.querySelectorAll('[data-nav]').forEach(b=>b.addEventListener('click',()
       else if(b.dataset.editRecord){editTransaction(b.dataset.editRecord);}
       else if(b.dataset.deleteRecord){removeTransaction(b.dataset.deleteRecord);}
       else if(b.dataset.copyRecord){copyRecord(b.dataset.copyRecord);}
+      else if(b.dataset.slackReport){openSlackReport(b.dataset.slackReport);}
       else if(b.dataset.viewDate){state.cashDate=b.dataset.viewDate;moneyTabChange('dia');}
       else if(b.id==='load-more-history'){state.historyLimit+=100;updateHistoryTable();}
     });
